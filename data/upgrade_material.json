@@ -1,0 +1,25 @@
+{
+  "upgrade_materials" : [
+    {
+      "type": "hero_upgrade_material",
+      "id": "hero_mat1",
+      "name": "hero_mat1",
+      "value": 100,
+      "description": "xxx"
+    },
+    {
+      "type": "hero_upgrade_material",
+      "id": "hero_mat2",
+      "name": "hero_mat2",
+      "value": 1000,
+      "description": "xxx"
+    },
+    {
+      "type": "hero_upgrade_material",
+      "id": "hero_mat3",
+      "name": "hero_mat3",
+      "value": 10000,
+      "description": "xxx"
+    }
+  ]
+}

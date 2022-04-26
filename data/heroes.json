@@ -1,0 +1,19 @@
+{
+  "heroes": [
+    {
+      "id": "alisia",
+      "name": "Alisia",
+      "quality": "quality_data/rare",
+      "affinity": "affinity_data/melancholy",
+      "klass": "hero_class_data/sniper",
+      "description": "TODO",
+      "ladder": "hero_ladder_data/default_ladder",
+      "slots": [
+        "hero_weapon_slot_data/armor"
+      ],
+      "skills": [
+        "skill_data/super_slash"
+      ]
+    }
+  ]
+}

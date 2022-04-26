@@ -1,0 +1,923 @@
+{
+  "weapon_ladder": [
+    {
+      "id": "default_ladder",
+      "levels": [
+        {
+          "experience": 0
+        },
+        {
+          "experience": 100
+        },
+        {
+          "experience": 200
+        },
+        {
+          "experience": 300
+        },
+        {
+          "experience": 400
+        },
+        {
+          "experience": 500
+        },
+        {
+          "experience": 600
+        },
+        {
+          "experience": 700
+        },
+        {
+          "experience": 800
+        },
+        {
+          "experience": 900
+        },
+        {
+          "experience": 1000
+        },
+        {
+          "experience": 1100
+        },
+        {
+          "experience": 1200
+        },
+        {
+          "experience": 1300
+        },
+        {
+          "experience": 1400
+        },
+        {
+          "experience": 1500
+        },
+        {
+          "experience": 1600
+        },
+        {
+          "experience": 1700
+        },
+        {
+          "experience": 1800
+        },
+        {
+          "experience": 1900
+        },
+        {
+          "experience": 2000
+        },
+        {
+          "experience": 2100
+        },
+        {
+          "experience": 2200
+        },
+        {
+          "experience": 2300
+        },
+        {
+          "experience": 2400
+        },
+        {
+          "experience": 2500
+        },
+        {
+          "experience": 2600
+        },
+        {
+          "experience": 2700
+        },
+        {
+          "experience": 2800
+        },
+        {
+          "experience": 2900
+        },
+        {
+          "experience": 3000
+        },
+        {
+          "experience": 3100
+        },
+        {
+          "experience": 3200
+        },
+        {
+          "experience": 3300
+        },
+        {
+          "experience": 3400
+        },
+        {
+          "experience": 3500
+        },
+        {
+          "experience": 3600
+        },
+        {
+          "experience": 3700
+        },
+        {
+          "experience": 3800
+        },
+        {
+          "experience": 3900
+        },
+        {
+          "experience": 4000
+        },
+        {
+          "experience": 4100
+        },
+        {
+          "experience": 4200
+        },
+        {
+          "experience": 4300
+        },
+        {
+          "experience": 4400
+        },
+        {
+          "experience": 4500
+        },
+        {
+          "experience": 4600
+        },
+        {
+          "experience": 4700
+        },
+        {
+          "experience": 4800
+        },
+        {
+          "experience": 4900
+        },
+        {
+          "experience": 5000
+        },
+        {
+          "experience": 5100
+        },
+        {
+          "experience": 5200
+        },
+        {
+          "experience": 5300
+        },
+        {
+          "experience": 5400
+        },
+        {
+          "experience": 5500
+        },
+        {
+          "experience": 5600
+        },
+        {
+          "experience": 5700
+        },
+        {
+          "experience": 5800
+        },
+        {
+          "experience": 5900
+        },
+        {
+          "experience": 6000
+        },
+        {
+          "experience": 6100
+        },
+        {
+          "experience": 6200
+        },
+        {
+          "experience": 6300
+        },
+        {
+          "experience": 6400
+        },
+        {
+          "experience": 6500
+        },
+        {
+          "experience": 6600
+        },
+        {
+          "experience": 6700
+        },
+        {
+          "experience": 6800
+        },
+        {
+          "experience": 6900
+        },
+        {
+          "experience": 7000
+        },
+        {
+          "experience": 7100
+        },
+        {
+          "experience": 7200
+        },
+        {
+          "experience": 7300
+        },
+        {
+          "experience": 7400
+        },
+        {
+          "experience": 7500
+        },
+        {
+          "experience": 7600
+        },
+        {
+          "experience": 7700
+        },
+        {
+          "experience": 7800
+        },
+        {
+          "experience": 7900
+        },
+        {
+          "experience": 8000
+        },
+        {
+          "experience": 8100
+        },
+        {
+          "experience": 8200
+        },
+        {
+          "experience": 8300
+        },
+        {
+          "experience": 8400
+        },
+        {
+          "experience": 8500
+        },
+        {
+          "experience": 8600
+        },
+        {
+          "experience": 8700
+        },
+        {
+          "experience": 8800
+        },
+        {
+          "experience": 8900
+        },
+        {
+          "experience": 9000
+        },
+        {
+          "experience": 9100
+        },
+        {
+          "experience": 9200
+        },
+        {
+          "experience": 9300
+        },
+        {
+          "experience": 9400
+        },
+        {
+          "experience": 9500
+        },
+        {
+          "experience": 9600
+        },
+        {
+          "experience": 9700
+        },
+        {
+          "experience": 9800
+        },
+        {
+          "experience": 9900
+        }
+      ]
+    }
+  ],
+  "artifact_ladder": [
+    {
+      "id": "default_ladder",
+      "levels": [
+        {
+          "experience": 0
+        },
+        {
+          "experience": 100
+        },
+        {
+          "experience": 200
+        },
+        {
+          "experience": 300
+        },
+        {
+          "experience": 400
+        },
+        {
+          "experience": 500
+        },
+        {
+          "experience": 600
+        },
+        {
+          "experience": 700
+        },
+        {
+          "experience": 800
+        },
+        {
+          "experience": 900
+        },
+        {
+          "experience": 1000
+        },
+        {
+          "experience": 1100
+        },
+        {
+          "experience": 1200
+        },
+        {
+          "experience": 1300
+        },
+        {
+          "experience": 1400
+        },
+        {
+          "experience": 1500
+        },
+        {
+          "experience": 1600
+        },
+        {
+          "experience": 1700
+        },
+        {
+          "experience": 1800
+        },
+        {
+          "experience": 1900
+        },
+        {
+          "experience": 2000
+        },
+        {
+          "experience": 2100
+        },
+        {
+          "experience": 2200
+        },
+        {
+          "experience": 2300
+        },
+        {
+          "experience": 2400
+        },
+        {
+          "experience": 2500
+        },
+        {
+          "experience": 2600
+        },
+        {
+          "experience": 2700
+        },
+        {
+          "experience": 2800
+        },
+        {
+          "experience": 2900
+        },
+        {
+          "experience": 3000
+        },
+        {
+          "experience": 3100
+        },
+        {
+          "experience": 3200
+        },
+        {
+          "experience": 3300
+        },
+        {
+          "experience": 3400
+        },
+        {
+          "experience": 3500
+        },
+        {
+          "experience": 3600
+        },
+        {
+          "experience": 3700
+        },
+        {
+          "experience": 3800
+        },
+        {
+          "experience": 3900
+        },
+        {
+          "experience": 4000
+        },
+        {
+          "experience": 4100
+        },
+        {
+          "experience": 4200
+        },
+        {
+          "experience": 4300
+        },
+        {
+          "experience": 4400
+        },
+        {
+          "experience": 4500
+        },
+        {
+          "experience": 4600
+        },
+        {
+          "experience": 4700
+        },
+        {
+          "experience": 4800
+        },
+        {
+          "experience": 4900
+        },
+        {
+          "experience": 5000
+        },
+        {
+          "experience": 5100
+        },
+        {
+          "experience": 5200
+        },
+        {
+          "experience": 5300
+        },
+        {
+          "experience": 5400
+        },
+        {
+          "experience": 5500
+        },
+        {
+          "experience": 5600
+        },
+        {
+          "experience": 5700
+        },
+        {
+          "experience": 5800
+        },
+        {
+          "experience": 5900
+        },
+        {
+          "experience": 6000
+        },
+        {
+          "experience": 6100
+        },
+        {
+          "experience": 6200
+        },
+        {
+          "experience": 6300
+        },
+        {
+          "experience": 6400
+        },
+        {
+          "experience": 6500
+        },
+        {
+          "experience": 6600
+        },
+        {
+          "experience": 6700
+        },
+        {
+          "experience": 6800
+        },
+        {
+          "experience": 6900
+        },
+        {
+          "experience": 7000
+        },
+        {
+          "experience": 7100
+        },
+        {
+          "experience": 7200
+        },
+        {
+          "experience": 7300
+        },
+        {
+          "experience": 7400
+        },
+        {
+          "experience": 7500
+        },
+        {
+          "experience": 7600
+        },
+        {
+          "experience": 7700
+        },
+        {
+          "experience": 7800
+        },
+        {
+          "experience": 7900
+        },
+        {
+          "experience": 8000
+        },
+        {
+          "experience": 8100
+        },
+        {
+          "experience": 8200
+        },
+        {
+          "experience": 8300
+        },
+        {
+          "experience": 8400
+        },
+        {
+          "experience": 8500
+        },
+        {
+          "experience": 8600
+        },
+        {
+          "experience": 8700
+        },
+        {
+          "experience": 8800
+        },
+        {
+          "experience": 8900
+        },
+        {
+          "experience": 9000
+        },
+        {
+          "experience": 9100
+        },
+        {
+          "experience": 9200
+        },
+        {
+          "experience": 9300
+        },
+        {
+          "experience": 9400
+        },
+        {
+          "experience": 9500
+        },
+        {
+          "experience": 9600
+        },
+        {
+          "experience": 9700
+        },
+        {
+          "experience": 9800
+        },
+        {
+          "experience": 9900
+        }
+      ]
+    }
+  ],
+  "hero_ladder": [
+    {
+      "id": "default_ladder",
+      "levels": [
+        {
+          "experience": 0
+        },
+        {
+          "experience": 100
+        },
+        {
+          "experience": 200
+        },
+        {
+          "experience": 300
+        },
+        {
+          "experience": 400
+        },
+        {
+          "experience": 500
+        },
+        {
+          "experience": 600
+        },
+        {
+          "experience": 700
+        },
+        {
+          "experience": 800
+        },
+        {
+          "experience": 900
+        },
+        {
+          "experience": 1000
+        },
+        {
+          "experience": 1100
+        },
+        {
+          "experience": 1200
+        },
+        {
+          "experience": 1300
+        },
+        {
+          "experience": 1400
+        },
+        {
+          "experience": 1500
+        },
+        {
+          "experience": 1600
+        },
+        {
+          "experience": 1700
+        },
+        {
+          "experience": 1800
+        },
+        {
+          "experience": 1900
+        },
+        {
+          "experience": 2000
+        },
+        {
+          "experience": 2100
+        },
+        {
+          "experience": 2200
+        },
+        {
+          "experience": 2300
+        },
+        {
+          "experience": 2400
+        },
+        {
+          "experience": 2500
+        },
+        {
+          "experience": 2600
+        },
+        {
+          "experience": 2700
+        },
+        {
+          "experience": 2800
+        },
+        {
+          "experience": 2900
+        },
+        {
+          "experience": 3000
+        },
+        {
+          "experience": 3100
+        },
+        {
+          "experience": 3200
+        },
+        {
+          "experience": 3300
+        },
+        {
+          "experience": 3400
+        },
+        {
+          "experience": 3500
+        },
+        {
+          "experience": 3600
+        },
+        {
+          "experience": 3700
+        },
+        {
+          "experience": 3800
+        },
+        {
+          "experience": 3900
+        },
+        {
+          "experience": 4000
+        },
+        {
+          "experience": 4100
+        },
+        {
+          "experience": 4200
+        },
+        {
+          "experience": 4300
+        },
+        {
+          "experience": 4400
+        },
+        {
+          "experience": 4500
+        },
+        {
+          "experience": 4600
+        },
+        {
+          "experience": 4700
+        },
+        {
+          "experience": 4800
+        },
+        {
+          "experience": 4900
+        },
+        {
+          "experience": 5000
+        },
+        {
+          "experience": 5100
+        },
+        {
+          "experience": 5200
+        },
+        {
+          "experience": 5300
+        },
+        {
+          "experience": 5400
+        },
+        {
+          "experience": 5500
+        },
+        {
+          "experience": 5600
+        },
+        {
+          "experience": 5700
+        },
+        {
+          "experience": 5800
+        },
+        {
+          "experience": 5900
+        },
+        {
+          "experience": 6000
+        },
+        {
+          "experience": 6100
+        },
+        {
+          "experience": 6200
+        },
+        {
+          "experience": 6300
+        },
+        {
+          "experience": 6400
+        },
+        {
+          "experience": 6500
+        },
+        {
+          "experience": 6600
+        },
+        {
+          "experience": 6700
+        },
+        {
+          "experience": 6800
+        },
+        {
+          "experience": 6900
+        },
+        {
+          "experience": 7000
+        },
+        {
+          "experience": 7100
+        },
+        {
+          "experience": 7200
+        },
+        {
+          "experience": 7300
+        },
+        {
+          "experience": 7400
+        },
+        {
+          "experience": 7500
+        },
+        {
+          "experience": 7600
+        },
+        {
+          "experience": 7700
+        },
+        {
+          "experience": 7800
+        },
+        {
+          "experience": 7900
+        },
+        {
+          "experience": 8000
+        },
+        {
+          "experience": 8100
+        },
+        {
+          "experience": 8200
+        },
+        {
+          "experience": 8300
+        },
+        {
+          "experience": 8400
+        },
+        {
+          "experience": 8500
+        },
+        {
+          "experience": 8600
+        },
+        {
+          "experience": 8700
+        },
+        {
+          "experience": 8800
+        },
+        {
+          "experience": 8900
+        },
+        {
+          "experience": 9000
+        },
+        {
+          "experience": 9100
+        },
+        {
+          "experience": 9200
+        },
+        {
+          "experience": 9300
+        },
+        {
+          "experience": 9400
+        },
+        {
+          "experience": 9500
+        },
+        {
+          "experience": 9600
+        },
+        {
+          "experience": 9700
+        },
+        {
+          "experience": 9800
+        },
+        {
+          "experience": 9900
+        }
+      ]
+    }
+  ]
+}

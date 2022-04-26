@@ -1,0 +1,14 @@
+{
+  "affinity": [
+    {
+      "id": "melancholy",
+      "name": "Melancholy",
+      "description": ""
+    },
+    {
+      "id": "lust",
+      "name": "Lust",
+      "description": ""
+    }
+  ]
+}

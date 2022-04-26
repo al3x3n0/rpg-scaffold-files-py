@@ -1,0 +1,16 @@
+{
+  "quality": [
+    {
+      "id": "common",
+      "name": "Common"
+    },
+    {
+      "id": "rare",
+      "name": "Rare"
+    },
+    {
+      "id": "superrare",
+      "name": "Super Rare"
+    }
+  ]
+}

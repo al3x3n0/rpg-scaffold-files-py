@@ -1,0 +1,6 @@
+{
+  "price" : {
+    "hero": "hero_data/alisia",
+    "condition": "$hero.level > 40"
+  }
+}

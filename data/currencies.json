@@ -1,0 +1,9 @@
+{
+  "currencies": [
+    {
+      "id": "gold",
+      "name": "Gold",
+      "ticker": "GLD"
+    }
+  ]
+}

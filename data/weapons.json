@@ -1,0 +1,10 @@
+{
+  "weapons": [
+    {
+      "id": "nanoedgesword",
+      "name": "NanoEdge Sword",
+      "description": "XXX",
+      "ladder": "weapon_ladder_data/default_ladder"
+    }
+  ]
+}
