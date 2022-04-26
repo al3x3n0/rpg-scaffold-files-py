@@ -1,3 +1,4 @@
+import argparse
 import os
 from pathlib import Path
 
@@ -8,7 +9,6 @@ from acrpg.model.data import GameData
 
 ROOT_DIR = Path(__file__).parent.resolve()
 DATA_DIR = ROOT_DIR.joinpath('data')
-GEN_DIR = ROOT_DIR.joinpath("generated")
 
 
 def load_all_data():
@@ -22,15 +22,20 @@ def load_all_data():
 
 
 def main():
-    csharp_path = GEN_DIR.joinpath("csharp")
-    sol_path = ROOT_DIR.joinpath("contracts/generated")
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--project-name", type=str, default='AlienCell')
+    parser.add_argument("--out-dir", type=str, default=str(ROOT_DIR.joinpath("generated")))
+    args = parser.parse_args()
+
+    gen_dir = Path(args.out_dir)
+    #sol_path = ROOT_DIR.joinpath("contracts/generated")
     #
     game_data = load_all_data()
-    csharp_gen = CodeGenCSharp(csharp_path, game_data)
-    sol_gen = SolCodeGenGo(sol_path, game_data)
+    csharp_gen = CodeGenCSharp(args.project_name, gen_dir, game_data)
+    #sol_gen = SolCodeGenGo('AlienCell', sol_path, game_data)
     #
-    #csharp_gen.generate()
-    sol_gen.generate()
+    csharp_gen.generate()
+    #sol_gen.generate()
 
 
 if __name__ == '__main__':

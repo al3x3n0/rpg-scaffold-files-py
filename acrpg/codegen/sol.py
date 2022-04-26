@@ -3,51 +3,16 @@ from pathlib import Path
 from collections import defaultdict
 import typing
 
-from acrpg.codegen.base import CodeGenBase, _BaseModel
+from acrpg.codegen.base import CodeGenBase, _BaseModel, Wrapped
 from acrpg.model.data import DataRef, BaseData
 from acrpg.model.models import UpgradeableWithExp, DataModel
 from acrpg.utils import *
-
-
-class Wrapped(object):
-    def __init__(self, cls, cgen: 'SolCodeGenGo'):
-        self._cls = cls
-        self._entity_name = cgen.get_entity_name(cls)
-        self._var_name = cgen.get_class_name_us(cls)
-        self._var_name_camel = inflection.camelize(self._var_name)
-        self._var_name_plural = inflection.pluralize(self._var_name)
-        self._data = None
-        if self._cls.is_erc721():
-            self._data = Wrapped(cgen.get_data_type_for_model(cls), cgen)
-
-    @property
-    def data(self):
-        return self._data
-
-    @property
-    def entity_name(self):
-        return self._entity_name
-
-    @property
-    def var_name(self):
-        return self._var_name
-
-    @property
-    def var_name_camel(self):
-        return self._var_name_camel
-
-    @property
-    def var_name_plural(self):
-        return self._var_name_plural
 
 
 class SolCodeGenGo(CodeGenBase):
     def __init__(self, *args, **kwargs):
         super(SolCodeGenGo, self).__init__(*args, **kwargs)
         self._contracts = []
-        self._data_classes = []
-        self._erc721_classes = []
-        self._entity_names = {}
         #
         self._arr_id = 0
         self._arrs_to_init = []
@@ -57,8 +22,6 @@ class SolCodeGenGo(CodeGenBase):
         for erc1155_id, erc1155_item in enumerate(self._erc1155_instances):
             self._erc1155_ids[erc1155_item.ref_str()] = erc1155_id
         self._upgrade_mats = {}
-        #
-        self._poly_structs = defaultdict(list)
 
     def get_upgrade_material(self, cls_):
         _data_cls = self._upgrade_mats.get(cls_.entity_name)
@@ -71,21 +34,6 @@ class SolCodeGenGo(CodeGenBase):
                 return _data_cls
         #
         assert False
-
-    def get_entity_name(self, cls):
-        entity_name = self._entity_names.get(cls, None)
-        if entity_name:
-            return entity_name
-        cls_name_us = inflection.underscore(cls.__name__).split('_')
-        #assert cls_name_us[-1] in ['data', 'model', 'base']
-        entity_name = inflection.camelize('_'.join(cls_name_us[:-1]))
-        self._entity_names[cls] = entity_name
-        return entity_name
-
-    def get_class_name_us(self, cls):
-        cls_name_us_ = inflection.underscore(cls.__name__).split('_')
-        #assert cls_name_us_[-1] in ['data', 'model', 'base']
-        return '_'.join(cls_name_us_)
 
     def get_struct_name(self, cls):
         return inflection.underscore(cls.__name__)
@@ -150,68 +98,6 @@ class SolCodeGenGo(CodeGenBase):
             if is_param:
                 ts += " memory"
             return ts
-
-    def get_model_data_deps(self, cls):
-        deps = set()
-        for fname, fdef in cls.__fields__.items():
-            ftype = fdef.outer_type_
-            t_origin = typing.get_origin(ftype)
-            if t_origin == DataRef:
-                deps.add(Wrapped(typing.get_args(ftype)[0], self))
-        return deps
-
-    def get_all_model_deps(self, cls):
-        deps = set()
-        t_origin = typing.get_origin(cls)
-        if t_origin:
-            if t_origin is list:
-                inner_type = typing.get_args(cls)[0]
-                inner_deps = self.get_all_model_deps(inner_type)
-                deps = deps.union(inner_deps)
-        elif issubclass(cls, DataModel):
-            deps.add(Wrapped(cls, self))
-            for fname, fdef in cls.__fields__.items():
-                ftype = fdef.outer_type_
-                deps = deps.union(self.get_all_model_deps(ftype))
-        #
-        return deps
-
-    def get_all_deps(self, cls):
-        deps = set()
-        t_origin = typing.get_origin(cls)
-        if t_origin:
-            if t_origin == DataRef:
-                pass
-            elif t_origin is list:
-                inner_type = typing.get_args(cls)[0]
-                inner_deps = self.get_all_deps(inner_type)
-                deps = deps.union(inner_deps)
-        elif issubclass(cls, _BaseModel):
-            deps.add(cls)
-            for fname, fdef in cls.__fields__.items():
-                ftype = fdef.outer_type_
-                deps = deps.union(self.get_all_deps(ftype))
-        #
-        return deps
-
-    def deref_data_ref(self, ftype):
-        t_origin = typing.get_origin(ftype)
-        assert (t_origin == DataRef)
-        return typing.get_args(ftype)[0]
-
-    def get_ladder_type_for_model(self, cls):
-        if isinstance(cls, Wrapped):
-            cls = cls._cls
-        assert 'ladder' in cls.__fields__
-        data_ftype = cls.__fields__['ladder'].outer_type_
-        return self.deref_data_ref(data_ftype)
-
-    def get_data_type_for_model(self, cls):
-        if isinstance(cls, Wrapped):
-            cls = cls._cls
-        assert 'data' in cls.__fields__
-        data_ftype = cls.__fields__['data'].outer_type_
-        return self.deref_data_ref(data_ftype)
 
     def emit_copy_array_from_data(self, ptype, data_ptype, fname, mtype, dtype):
         dtype = self.deref_data_ref(dtype)
@@ -503,13 +389,6 @@ contract {entity_name}Data {{
 
         return s, entity_name + 'Data'
 
-    def process_poly_cls(self, cls):
-        for p_cls in cls.__mro__:
-            if not issubclass(p_cls, _BaseModel):
-                break
-            if p_cls._struct and p_cls != cls:
-                self._poly_structs[p_cls].append(cls)
-
     def emit_code(self, cls, mod):
         s = ''
         entity_name = ''
@@ -517,18 +396,15 @@ contract {entity_name}Data {{
         #
         if cls._nft:
             subpath = 'model/'
-            self._erc721_classes.append(Wrapped(cls, self))
             s, entity_name = self.emit_code_nft(cls, mod)
         elif cls._is_ladder:
             subpath = 'data/'
-            self._data_classes.append(Wrapped(cls, self))
             s, entity_name = self.emit_code_ladder(cls, mod)
         elif issubclass(cls, BaseData):
             subpath = 'data/'
-            self._data_classes.append(Wrapped(cls, self))
             s, entity_name = self.emit_code_data(cls, mod)
         elif issubclass(cls, _BaseModel):
-            self.process_poly_cls(cls)
+            pass
         if not s:
             return
         assert entity_name
