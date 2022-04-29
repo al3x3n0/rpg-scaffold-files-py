@@ -9,6 +9,10 @@ from acrpg.model.data import DataRef, BaseData
 
 class CodeGenCSharp(CodeGenBase):
 
+    def __init__(self, *args, **kwargs):
+        super(CodeGenCSharp, self).__init__(*args, **kwargs)
+        self._server_out_dir = kwargs.get('server_out_dir')
+
     def get_cs_type(self, fdef: type):
         #
         t_origin = typing.get_origin(fdef)
@@ -116,7 +120,7 @@ public class {cls.__name__}
                 s += "    [PrimaryKey]\n"
                 s += f"    public int Id {{ get; set; }}\n"
             else:
-                s += f"    public {self.get_cs_type(fdef.outer_type_)} {inflection.camelize(fname)} {{ get; set; }}\n"
+                s += f"    public {self.get_cs_type(fdef.outer_type_)} {inflection.camelize(fname)} {{ get; }}\n"
         s += self.emit_constructor(cls)
         s += "}\n\n}"
         #
@@ -147,6 +151,100 @@ public interface I{_wrp_cls.entity_name}Visitor
             .joinpath(f'I{_wrp_cls.entity_name}Visitor.cs')
         self.write_file(out_path, s)
 
+    def emit_db_models(self):
+        for wrp_cls in self._erc721_classes:
+            self._emit_db_model(wrp_cls)
+
+    def _emit_db_model(self, wrp_cls):
+        s = f"""//
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+using MicroOrm.Dapper.Repositories.Attributes;
+
+namespace {self.namespace}.Generated.DB.Models
+{{
+
+[Table("{wrp_cls.var_name_plural}")]
+public class {wrp_cls.var_name_camel}
+{{
+    [Key]
+    [Identity]
+    public int Id {{ get; set; }}
+
+"""
+        for fname, fdef in wrp_cls._cls.__fields__.items():
+            if fname == 'id':
+                continue
+            t_origin = typing.get_origin(fdef.outer_type_)
+            if t_origin == DataRef:
+                s += f"    public long {inflection.camelize(fname)} {{ get; set; }}\n"
+            else:
+                s += f"    public {self.get_cs_type(fdef.outer_type_)} {inflection.camelize(fname)} {{ get; set; }}\n"
+        s += "}\n\n}"
+        out_path = Path(self._server_out_dir)\
+            .joinpath("DB") \
+            .joinpath('Models') \
+            .joinpath(f'{wrp_cls.entity_name}.cs')
+        self.write_file(out_path, s)
+
+    def _emit_idb_context(self):
+        s = f"""//
+using MicroOrm.Dapper.Repositories;
+using MicroOrm.Dapper.Repositories.DbContext;
+using {self.namespace}.Generated.DB.Models;
+
+namespace {self.namespace}.Generated.DB
+{{
+
+public interface IDbContext : IDapperDbContext
+{{
+"""
+        for wrp_cls in self._erc721_classes:
+            s += f"    IDapperRepository<{wrp_cls.var_name_camel}> {wrp_cls.entity_name_plural} {{ get; }}\n"
+        s += "}\n\n}"
+        out_path = Path(self._server_out_dir) \
+            .joinpath('DB') \
+            .joinpath(f'IDbContext.cs')
+        self.write_file(out_path, s)
+
+    def _emit_db_context(self):
+        s = f"""//
+using MicroOrm.Dapper.Repositories;
+using MicroOrm.Dapper.Repositories.DbContext;
+using MicroOrm.Dapper.Repositories.SqlGenerator;
+using MySql.Data.MySqlClient;
+using {self.namespace}.Generated.DB.Models;
+
+namespace {self.namespace}.Generated.DB
+{{
+
+public class DbContext : DapperDbContext, IDbContext
+{{
+
+    public DbContext(string connectionString)
+        : base(new MySqlConnection(connectionString))
+    {{
+    }}
+
+"""
+        #
+        for wrp_cls in self._erc721_classes:
+            s += f"    private IDapperRepository<{wrp_cls.var_name_camel}> _{wrp_cls.var_name_plural};\n"
+        #
+        for wrp_cls in self._erc721_classes:
+            s += f"""
+    public IDapperRepository<{wrp_cls.var_name_camel}> {wrp_cls.entity_name_plural} => _{wrp_cls.var_name_plural} ??
+        (_{wrp_cls.var_name_plural} = new DapperRepository<{wrp_cls.var_name_camel}>(Connection, new SqlGenerator<{wrp_cls.var_name_camel}>(SqlProvider.MySQL)));"""
+        #
+        s += "}\n\n}"
+        out_path = Path(self._server_out_dir) \
+            .joinpath('DB') \
+            .joinpath(f'DbContext.cs')
+        self.write_file(out_path, s)
+
     def generate(self):
         super().generate()
         self.emit_visitors()
+        self.emit_db_models()
+        self._emit_idb_context()
+        self._emit_db_context()

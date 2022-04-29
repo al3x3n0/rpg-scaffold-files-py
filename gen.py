@@ -25,13 +25,14 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--project-name", type=str, default='AlienCell')
     parser.add_argument("--out-dir", type=str, default=str(ROOT_DIR.joinpath("generated")))
+    parser.add_argument("--server-out-dir", type=str, default=ROOT_DIR.joinpath("gen_server"))
     args = parser.parse_args()
 
     gen_dir = Path(args.out_dir)
     #sol_path = ROOT_DIR.joinpath("contracts/generated")
     #
     game_data = load_all_data()
-    csharp_gen = CodeGenCSharp(args.project_name, gen_dir, game_data)
+    csharp_gen = CodeGenCSharp(args.project_name, gen_dir, game_data, server_out_dir=Path(args.server_out_dir))
     #sol_gen = SolCodeGenGo('AlienCell', sol_path, game_data)
     #
     csharp_gen.generate()

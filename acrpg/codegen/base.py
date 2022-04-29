@@ -16,6 +16,7 @@ class Wrapped(object):
     def __init__(self, cls, cgen: 'CodeGenBase'):
         self._cls = cls
         self._entity_name = cgen.get_entity_name(cls)
+        self._entity_name_plural = inflection.pluralize(self._entity_name)
         self._entity_name_us = inflection.underscore(self._entity_name)
         self._var_name = cgen.get_class_name_us(cls)
         self._var_name_camel = inflection.camelize(self._var_name)
@@ -31,6 +32,10 @@ class Wrapped(object):
     @property
     def entity_name(self):
         return self._entity_name
+
+    @property
+    def entity_name_plural(self):
+        return self._entity_name_plural
 
     @property
     def entity_name_us(self):
@@ -58,7 +63,7 @@ class CodeGenBase(object):
         'acrpg.model.structs'
     ]
 
-    def __init__(self, namespace, out_dir, game_data):
+    def __init__(self, namespace, out_dir, game_data, **kwargs):
         self._namespace = namespace
         self._out_dir = out_dir
         self._game_data = game_data
