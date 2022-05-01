@@ -5,6 +5,7 @@ import typing
 from acrpg.codegen.base import CodeGenBase, Wrapped
 from acrpg.model.base import _BaseModel
 from acrpg.model.data import DataRef, BaseData
+from acrpg.model.models import UpgradeableWithExp
 
 
 class CodeGenCSharp(CodeGenBase):
@@ -171,6 +172,8 @@ public class {wrp_cls.var_name_camel}
     [Identity]
     public int Id {{ get; set; }}
 
+    public int UserId {{ get; set; }}
+
 """
         for fname, fdef in wrp_cls._cls.__fields__.items():
             if fname == 'id':
@@ -242,9 +245,204 @@ public class DbContext : DapperDbContext, IDbContext
             .joinpath(f'DbContext.cs')
         self.write_file(out_path, s)
 
+    def _emit_events(self):
+        for wrp_cls in self._erc721_classes:
+            self._emit_model_event(wrp_cls)
+
+    def _emit_model_event(self, wrp_cls):
+        s = f"""
+namespace {self.namespace}.Generated.Events
+{{
+
+public class {wrp_cls.entity_name}AddedEvent
+{{
+}}
+
+public class {wrp_cls.entity_name}RetiredEvent
+{{
+}}
+"""
+        if issubclass(wrp_cls._cls, UpgradeableWithExp):
+            s += f"""
+public class {wrp_cls.entity_name}LevelUpEvent
+{{
+"""
+            s += "}\n"
+            #
+            s += f"""
+public class {wrp_cls.entity_name}ExpChangeEvent
+{{
+"""
+            s += "}\n"
+        s += "\n}"
+        out_path = Path(self._server_out_dir) \
+            .joinpath('Events') \
+            .joinpath(f'{wrp_cls.entity_name}Events.cs')
+        self.write_file(out_path, s)
+
+    def _emit_ievent_hub(self):
+        s = f"""//
+using MessagePipe;
+
+namespace {self.namespace}.Generated.Events
+{{
+
+public interface IEventHubSub
+{{
+"""
+        for wrp_cls in self._erc721_classes:
+            s += f"    ISubscriber<{wrp_cls.entity_name}AddedEvent> {wrp_cls.entity_name}AddedSub {{ get; }}\n"
+            s += f"    ISubscriber<{wrp_cls.entity_name}RetiredEvent> {wrp_cls.entity_name}RetiredSub {{ get; }}\n"
+            #
+            if issubclass(wrp_cls._cls, UpgradeableWithExp):
+                s += f"    ISubscriber<{wrp_cls.entity_name}LevelUpEvent> {wrp_cls.entity_name}LevelUpSub {{ get; }}\n"
+                s += f"    ISubscriber<{wrp_cls.entity_name}ExpChangeEvent> {wrp_cls.entity_name}ExpChangeSub {{ get; }}\n"
+            #
+            s += "\n"
+        s += "}\n"
+
+        s += """
+public interface IEventHubPub
+{
+"""
+        for wrp_cls in self._erc721_classes:
+            s += f"    IPublisher<{wrp_cls.entity_name}AddedEvent> {wrp_cls.entity_name}AddedPub {{ get; }}\n"
+            s += f"    IPublisher<{wrp_cls.entity_name}RetiredEvent> {wrp_cls.entity_name}RetiredPub {{ get; }}\n"
+            #
+            if issubclass(wrp_cls._cls, UpgradeableWithExp):
+                s += f"    IPublisher<{wrp_cls.entity_name}LevelUpEvent> {wrp_cls.entity_name}LevelUpPub {{ get; }}\n"
+                s += f"    IPublisher<{wrp_cls.entity_name}ExpChangeEvent> {wrp_cls.entity_name}ExpChangePub {{ get; }}\n"
+                s += "\n"
+        s += "}\n"
+        # namespace end
+        s += "\n}"
+        out_path = Path(self._server_out_dir) \
+            .joinpath(f'IEventHub.cs')
+        self.write_file(out_path, s)
+
+    def _emit_event_hub(self):
+        s = f"""//
+using MessagePipe;
+
+namespace {self.namespace}.Generated.Events
+{{
+
+public class EventHub : IEventHubPub, IEventHubSub
+{{
+
+    public EventHub (EventFactory eventFactory)
+    {{
+"""
+        for wrp_cls in self._erc721_classes:
+            s += f"        (_{wrp_cls.entity_name_us}_added_pub, _{wrp_cls.entity_name_us}_added_sub) = eventFactory.CreateEvent<{wrp_cls.entity_name}AddedEvent>();\n"
+            s += f"        (_{wrp_cls.entity_name_us}_retired_pub, _{wrp_cls.entity_name_us}_retired_sub) = eventFactory.CreateEvent<{wrp_cls.entity_name}RetiredEvent>();\n"
+            if issubclass(wrp_cls._cls, UpgradeableWithExp):
+                s += f"        (_{wrp_cls.entity_name_us}_level_up_pub, _{wrp_cls.entity_name_us}_level_up_sub) = eventFactory.CreateEvent<{wrp_cls.entity_name}LevelUpEvent>();\n"
+                s += f"        (_{wrp_cls.entity_name_us}_exp_change_pub, _{wrp_cls.entity_name_us}_exp_change_sub) = eventFactory.CreateEvent<{wrp_cls.entity_name}ExpChangeEvent>();\n"
+        s += "    }\n\n"
+        for wrp_cls in self._erc721_classes:
+            s += f"    private ISubscriber<{wrp_cls.entity_name}AddedEvent> _{wrp_cls.entity_name_us}_added_sub;\n"
+            s += f"    private IDisposablePublisher<{wrp_cls.entity_name}AddedEvent> _{wrp_cls.entity_name_us}_added_pub;\n"
+            s += f"    private ISubscriber<{wrp_cls.entity_name}RetiredEvent> _{wrp_cls.entity_name_us}_retired_sub;\n"
+            s += f"    private IDisposablePublisher<{wrp_cls.entity_name}RetiredEvent> _{wrp_cls.entity_name_us}_retired_pub;\n"
+            #
+            if issubclass(wrp_cls._cls, UpgradeableWithExp):
+                s += f"    private ISubscriber<{wrp_cls.entity_name}LevelUpEvent> _{wrp_cls.entity_name_us}_level_up_sub;\n"
+                s += f"    private IDisposablePublisher<{wrp_cls.entity_name}LevelUpEvent> _{wrp_cls.entity_name_us}_level_up_pub;\n"
+                s += f"    private ISubscriber<{wrp_cls.entity_name}ExpChangeEvent> _{wrp_cls.entity_name_us}_exp_change_sub;\n"
+                s += f"    private IDisposablePublisher<{wrp_cls.entity_name}ExpChangeEvent> _{wrp_cls.entity_name_us}_exp_change_pub;\n"
+            s += "\n"
+        #
+        for wrp_cls in self._erc721_classes:
+            s += f"    public IPublisher<{wrp_cls.entity_name}AddedEvent> {wrp_cls.entity_name}AddedPub {{ get => _{wrp_cls.entity_name_us}_added_pub; }}\n"
+            s += f"    public IPublisher<{wrp_cls.entity_name}RetiredEvent> {wrp_cls.entity_name}RetiredPub {{ get => _{wrp_cls.entity_name_us}_retired_pub; }}\n"
+            #
+            if issubclass(wrp_cls._cls, UpgradeableWithExp):
+                s += f"    public IPublisher<{wrp_cls.entity_name}LevelUpEvent> {wrp_cls.entity_name}LevelUpPub {{ get => _{wrp_cls.entity_name_us}_level_up_pub; }}\n"
+                s += f"    public IPublisher<{wrp_cls.entity_name}ExpChangeEvent> {wrp_cls.entity_name}ExpChangePub {{ get => _{wrp_cls.entity_name_us}_exp_change_pub; }}\n"
+                s += "\n"
+            s += "\n"
+        #
+        for wrp_cls in self._erc721_classes:
+            s += f"    public ISubscriber<{wrp_cls.entity_name}AddedEvent> {wrp_cls.entity_name}AddedSub {{ get => _{wrp_cls.entity_name_us}_added_sub; }}\n"
+            s += f"    public ISubscriber<{wrp_cls.entity_name}RetiredEvent> {wrp_cls.entity_name}RetiredSub {{ get => _{wrp_cls.entity_name_us}_retired_sub; }}\n"
+            #
+            if issubclass(wrp_cls._cls, UpgradeableWithExp):
+                s += f"    public ISubscriber<{wrp_cls.entity_name}LevelUpEvent> {wrp_cls.entity_name}LevelUpSub {{ get => _{wrp_cls.entity_name_us}_level_up_sub; }}\n"
+                s += f"    public ISubscriber<{wrp_cls.entity_name}ExpChangeEvent> {wrp_cls.entity_name}ExpChangeSub {{ get => _{wrp_cls.entity_name_us}_exp_change_sub; }}\n"
+        s += "}\n"
+        # namespace end
+        s += "\n}"
+        out_path = Path(self._server_out_dir) \
+            .joinpath(f'EventHub.cs')
+        self.write_file(out_path, s)
+
+    def _emit_iservices(self):
+        for wrp_cls in self._erc721_classes:
+            self._emit_model_iservice(wrp_cls)
+
+    def _emit_model_iservice(self, wrp_cls):
+        s = f"""//
+
+namespace {self.namespace}.Generated.Services
+{{
+
+public partial interface IGameService
+{{
+    public void Retire{wrp_cls.entity_name}(long id);
+"""
+        s += "}\n"
+        # namespace end
+        s += "\n}"
+        out_path = Path(self._out_dir) \
+            .joinpath("Services") \
+            .joinpath(f'I{wrp_cls.entity_name}Service.cs')
+        self.write_file(out_path, s)
+
+    def _emit_model_services(self):
+        for wrp_cls in self._erc721_classes:
+            self._emit_model_service(wrp_cls)
+
+    def _emit_model_service(self, wrp_cls):
+        s = f"""//
+using MagicOnion.Server;
+
+using {self.namespace}.Shared.Services;
+
+namespace {self.namespace}.Server.Services
+{{
+
+public partial class GameService : IGameService
+{{
+    public void Retire{wrp_cls.entity_name}(long id)
+    {{
+    }}
+
+    private void Add{wrp_cls.entity_name}(ServiceContext ctx, long dataId)
+    {{
+    }}
+
+    private void Retire{wrp_cls.entity_name}(ServiceContext ctx, long dataId)
+    {{
+    }}
+"""
+        s += "}\n"
+        # namespace end
+        s += "\n}"
+        out_path = Path(self._server_out_dir) \
+            .joinpath("Services") \
+            .joinpath(f'{wrp_cls.entity_name}Service.cs')
+        self.write_file(out_path, s)
+
     def generate(self):
         super().generate()
         self.emit_visitors()
         self.emit_db_models()
+        #self.emit_user_model()
         self._emit_idb_context()
         self._emit_db_context()
+        self._emit_events()
+        self._emit_ievent_hub()
+        self._emit_event_hub()
+        self._emit_iservices()
+        self._emit_model_services()
