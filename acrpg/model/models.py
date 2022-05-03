@@ -29,7 +29,7 @@ class HeroModel(UpgradeableWithExp):
     _nft = True
 
     data: DataRef[HeroData]
-    skills: typing.List[SkillModel]
+    #skills: typing.List[SkillModel]
 
 
 class WeaponModel(UpgradeableWithExp):

@@ -14,6 +14,25 @@ class CodeGenCSharp(CodeGenBase):
         super(CodeGenCSharp, self).__init__(*args, **kwargs)
         self._server_out_dir = kwargs.get('server_out_dir')
 
+    def get_sql_type(self, fdef: type):
+        #
+        t_origin = typing.get_origin(fdef)
+        #
+        if fdef == int:
+            return "int"
+        elif fdef == str:
+            return "varchar(256)"
+        elif t_origin:
+            t_args = typing.get_args(fdef)
+            if t_origin is typing.Optional:
+                return self.get_sql_type(t_args[0])
+            elif t_origin == DataRef:
+                return f"int"
+            else:
+                assert False, f"{t_origin} not supported"
+        else:
+            return fdef.__name__
+
     def get_cs_type(self, fdef: type):
         #
         t_origin = typing.get_origin(fdef)
@@ -158,21 +177,26 @@ public interface I{_wrp_cls.entity_name}Visitor
 
     def _emit_db_model(self, wrp_cls):
         s = f"""//
+using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using MicroOrm.Dapper.Repositories.Attributes;
 
-namespace {self.namespace}.Generated.DB.Models
+namespace {self.namespace}.Server.DB.Generated.Models
 {{
 
 [Table("{wrp_cls.var_name_plural}")]
-public class {wrp_cls.var_name_camel}
+public class {wrp_cls.var_name_camel} : IChangeTracking
 {{
     [Key]
     [Identity]
     public int Id {{ get; set; }}
 
     public int UserId {{ get; set; }}
+
+    [NotMapped]
+    public bool IsChanged {{ get; private set; }}    
+    public void AcceptChanges() => IsChanged = false;
 
 """
         for fname, fdef in wrp_cls._cls.__fields__.items():
@@ -182,7 +206,18 @@ public class {wrp_cls.var_name_camel}
             if t_origin == DataRef:
                 s += f"    public long {inflection.camelize(fname)} {{ get; set; }}\n"
             else:
-                s += f"    public {self.get_cs_type(fdef.outer_type_)} {inflection.camelize(fname)} {{ get; set; }}\n"
+                s += f"""
+    private {self.get_cs_type(fdef.outer_type_)} _{inflection.camelize(fname)};
+    public {self.get_cs_type(fdef.outer_type_)} {inflection.camelize(fname)}
+    {{
+        get => _{inflection.camelize(fname)};
+        set
+        {{
+            _{inflection.camelize(fname)} = value;
+            IsChanged = true;
+        }}
+    }}
+"""
         s += "}\n\n}"
         out_path = Path(self._server_out_dir)\
             .joinpath("DB") \
@@ -194,9 +229,10 @@ public class {wrp_cls.var_name_camel}
         s = f"""//
 using MicroOrm.Dapper.Repositories;
 using MicroOrm.Dapper.Repositories.DbContext;
-using {self.namespace}.Generated.DB.Models;
 
-namespace {self.namespace}.Generated.DB
+using {self.namespace}.Server.DB.Generated.Models;
+
+namespace {self.namespace}.Server.DB
 {{
 
 public interface IDbContext : IDapperDbContext
@@ -210,26 +246,37 @@ public interface IDbContext : IDapperDbContext
             .joinpath(f'IDbContext.cs')
         self.write_file(out_path, s)
 
+    def _emit_table_create_sql(self, wrp_cls):
+        s = f"CREATE TABLE IF NOT EXISTS `{wrp_cls.var_name_plural}` (`Id` int not null auto_increment,"
+        s += " `UserId` int not null,"
+        for fname, fdef in wrp_cls._cls.__fields__.items():
+            if fname == 'id':
+                continue
+            s += f" `{inflection.camelize(fname)}` {self.get_sql_type(fdef.outer_type_)} not null,"
+        s += " PRIMARY KEY (`Id`));"
+        return s
+
     def _emit_db_context(self):
         s = f"""//
+using Dapper;
 using MicroOrm.Dapper.Repositories;
 using MicroOrm.Dapper.Repositories.DbContext;
 using MicroOrm.Dapper.Repositories.SqlGenerator;
-using MySql.Data.MySqlClient;
-using {self.namespace}.Generated.DB.Models;
 
-namespace {self.namespace}.Generated.DB
+using {self.namespace}.Server.DB.Generated.Models;
+
+namespace {self.namespace}.Server.DB
 {{
 
-public class DbContext : DapperDbContext, IDbContext
+public partial class DbContext : DapperDbContext, IDbContext
 {{
 
-    public DbContext(string connectionString)
-        : base(new MySqlConnection(connectionString))
+    private void InitDB()
     {{
-    }}
-
 """
+        for wrp_cls in self._erc721_classes:
+            s += f"        Connection.Execute(\"{self._emit_table_create_sql(wrp_cls)}\");\n"
+        s += "    }\n\n"
         #
         for wrp_cls in self._erc721_classes:
             s += f"    private IDapperRepository<{wrp_cls.var_name_camel}> _{wrp_cls.var_name_plural};\n"
