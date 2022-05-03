@@ -171,6 +171,118 @@ public interface I{_wrp_cls.entity_name}Visitor
             .joinpath(f'I{_wrp_cls.entity_name}Visitor.cs')
         self.write_file(out_path, s)
 
+    def _emit_user_repo(self):
+        s = f"""//
+using System;
+
+using {self.namespace}.Server.DB.Generated.Models;
+
+namespace {self.namespace}.Server.Repositories
+{{
+
+public partial class User
+{{
+"""
+        for wrp_cls in self._erc721_classes:
+            s += f"    public List<{wrp_cls.var_name_camel}> {wrp_cls.entity_name_plural} {{ get => Model.{wrp_cls.entity_name_plural}; }}\n"
+        s += "\n"
+        for wrp_cls in self._erc721_classes:
+            s += f"""
+    public async Task<{wrp_cls.var_name_camel}> AddAsync({wrp_cls.var_name_camel} {wrp_cls.entity_name_us})
+    {{
+        {wrp_cls.entity_name_us}.UserId = this.Id;
+        await this._db.{wrp_cls.entity_name_plural}.InsertAsync({wrp_cls.entity_name_us});
+        this._model.{wrp_cls.entity_name_plural}.Add({wrp_cls.entity_name_us});
+        return {wrp_cls.entity_name_us};
+    }}
+"""
+        s += "}\n\n}"
+        out_path = Path(self._server_out_dir) \
+            .joinpath("Repositories") \
+            .joinpath('User.cs')
+        self.write_file(out_path, s)
+
+    def _emit_user_model(self):
+        s = f"""//
+using System.ComponentModel;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+using MicroOrm.Dapper.Repositories.Attributes;
+using MicroOrm.Dapper.Repositories.Attributes.Joins;
+
+namespace {self.namespace}.Server.DB.Generated.Models
+{{
+
+[Table("user_models")]
+public class UserModel
+{{
+    [Key]
+    [Identity]
+    public int Id {{ get; set; }}
+    [Key]
+    public byte[] Address {{ get; set; }}  
+"""
+        for wrp_cls in self._erc721_classes:
+            s += f'    [LeftJoin("{wrp_cls.var_name_plural}", "Id", "UserId")]\n'
+            s += f"    public List<{wrp_cls.var_name_camel}> {wrp_cls.entity_name_plural} {{ get; set; }}\n"
+        s += "}\n\n}"
+        out_path = Path(self._server_out_dir)\
+            .joinpath("DB") \
+            .joinpath('Models') \
+            .joinpath('User.cs')
+        self.write_file(out_path, s)
+
+    def _emit_db_change_set(self):
+        s = f"""//
+using System.Collections.Generic;
+
+using {self.namespace}.Server.DB.Generated.Models;
+
+namespace {self.namespace}.Server.DB
+{{
+
+public partial class DbChangeSet
+{{
+"""
+        for wrp_cls in self._erc721_classes:
+            s += f"    private Dictionary<int, {wrp_cls.var_name_camel}> _{wrp_cls.var_name_plural};\n"
+        s += "\n"
+        for wrp_cls in self._erc721_classes:
+            s += f"""
+    public Dictionary<int, {wrp_cls.var_name_camel}> {wrp_cls.entity_name_plural} => _{wrp_cls.var_name_plural} ??
+        (_{wrp_cls.var_name_plural} = new Dictionary<int, {wrp_cls.var_name_camel}>());
+"""
+        s += "\n"
+        #
+        for wrp_cls in self._erc721_classes:
+            s += f"""
+    public void Add({wrp_cls.var_name_camel} {wrp_cls.var_name})
+    {{
+        {wrp_cls.entity_name_plural}[{wrp_cls.var_name}.Id] = {wrp_cls.var_name};
+    }}
+"""
+        s += f"""
+    public async Task<bool> FlushChanges(DbContext db)
+    {{
+"""
+        for wrp_cls in self._erc721_classes:
+
+            s += f"""
+        if (_{wrp_cls.var_name_plural} is not null)
+        {{
+            await db.{wrp_cls.entity_name_plural}.BulkUpdateAsync(_{wrp_cls.var_name_plural}.Values.ToList());
+        }}
+"""
+        s += f"""
+        return true;
+    }}
+"""
+        s += "}\n\n}"
+        out_path = Path(self._server_out_dir)\
+            .joinpath("DB") \
+            .joinpath('DbChangeSet.cs')
+        self.write_file(out_path, s)
+
     def emit_db_models(self):
         for wrp_cls in self._erc721_classes:
             self._emit_db_model(wrp_cls)
@@ -185,9 +297,12 @@ using MicroOrm.Dapper.Repositories.Attributes;
 namespace {self.namespace}.Server.DB.Generated.Models
 {{
 
+[MessagePack.MessagePackObject(true)]
 [Table("{wrp_cls.var_name_plural}")]
-public class {wrp_cls.var_name_camel} : IChangeTracking
+public class {wrp_cls.var_name_camel} : IChangeTracking//, INotifyPropertyChanged
 {{
+    //public event PropertyChangedEventHandler PropertyChanged;
+
     [Key]
     [Identity]
     public int Id {{ get; set; }}
@@ -237,6 +352,7 @@ namespace {self.namespace}.Server.DB
 
 public interface IDbContext : IDapperDbContext
 {{
+    IDapperRepository<UserModel> Users {{ get; }}
 """
         for wrp_cls in self._erc721_classes:
             s += f"    IDapperRepository<{wrp_cls.var_name_camel}> {wrp_cls.entity_name_plural} {{ get; }}\n"
@@ -245,6 +361,13 @@ public interface IDbContext : IDapperDbContext
             .joinpath('DB') \
             .joinpath(f'IDbContext.cs')
         self.write_file(out_path, s)
+
+    def _emit_users_table_create_sql(self):
+        s = f"CREATE TABLE IF NOT EXISTS `user_models` (`Id` int not null auto_increment,"
+        s += " `Address` varbinary(32) not null,"
+        s += " INDEX `Address_Idx` (`Address`),"
+        s += " PRIMARY KEY (`Id`));"
+        return s
 
     def _emit_table_create_sql(self, wrp_cls):
         s = f"CREATE TABLE IF NOT EXISTS `{wrp_cls.var_name_plural}` (`Id` int not null auto_increment,"
@@ -273,13 +396,19 @@ public partial class DbContext : DapperDbContext, IDbContext
 
     private void InitDB()
     {{
+        Connection.Execute(\"{self._emit_users_table_create_sql()}\");
 """
         for wrp_cls in self._erc721_classes:
             s += f"        Connection.Execute(\"{self._emit_table_create_sql(wrp_cls)}\");\n"
         s += "    }\n\n"
         #
+        s += f"    private IDapperRepository<UserModel> _user_models;\n"
         for wrp_cls in self._erc721_classes:
             s += f"    private IDapperRepository<{wrp_cls.var_name_camel}> _{wrp_cls.var_name_plural};\n"
+        #
+        s += f"""
+    public IDapperRepository<UserModel> Users => _user_models ??
+        (_user_models = new DapperRepository<UserModel>(Connection, new SqlGenerator<UserModel>(SqlProvider.MySQL)));"""
         #
         for wrp_cls in self._erc721_classes:
             s += f"""
@@ -485,7 +614,9 @@ public partial class GameService : IGameService
         super().generate()
         self.emit_visitors()
         self.emit_db_models()
-        #self.emit_user_model()
+        self._emit_db_change_set()
+        self._emit_user_model()
+        self._emit_user_repo()
         self._emit_idb_context()
         self._emit_db_context()
         self._emit_events()
@@ -493,3 +624,4 @@ public partial class GameService : IGameService
         self._emit_event_hub()
         self._emit_iservices()
         self._emit_model_services()
+

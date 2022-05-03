@@ -20,6 +20,7 @@ class Wrapped(object):
         self._entity_name_us = inflection.underscore(self._entity_name)
         self._var_name = cgen.get_class_name_us(cls)
         self._var_name_camel = inflection.camelize(self._var_name)
+        self._var_name_camel_plural = inflection.pluralize(self._var_name_camel)
         self._var_name_plural = inflection.pluralize(self._var_name)
         self._data = None
         if self._cls.is_erc721():
@@ -48,6 +49,10 @@ class Wrapped(object):
     @property
     def var_name_camel(self):
         return self._var_name_camel
+
+    @property
+    def var_name_camel_plural(self):
+        return self._var_name_camel_plural
 
     @property
     def var_name_plural(self):
