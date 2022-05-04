@@ -172,9 +172,15 @@ public interface I{_wrp_cls.entity_name}Visitor
         self.write_file(out_path, s)
 
     def _emit_user_repo(self):
+        models_s = ','.join([wrp_cls.var_name_camel for wrp_cls in self._erc721_classes])
+        models_x_s = ','.join([f'q => q.{wrp_cls.entity_name_plural}' for wrp_cls in self._erc721_classes])
+
         s = f"""//
 using System;
+using System.Data;
+using MagicOnion.Server;
 
+using {self.namespace}.Server.DB;
 using {self.namespace}.Server.DB.Generated.Models;
 
 namespace {self.namespace}.Server.Repositories
@@ -190,10 +196,25 @@ public partial class User
             s += f"""
     public async Task<{wrp_cls.var_name_camel}> AddAsync({wrp_cls.var_name_camel} {wrp_cls.entity_name_us})
     {{
-        {wrp_cls.entity_name_us}.UserId = this.Id;
-        await this._db.{wrp_cls.entity_name_plural}.InsertAsync({wrp_cls.entity_name_us});
+        var tx = ServiceContext.Current.Items["tx"] as IDbTransaction;
+        var changes = ServiceContext.Current.Items[nameof(DbChangeSet)] as DbChangeSet;
+        //
+        {wrp_cls.entity_name_us}.UserId = this.Id;        
+        Console.WriteLine($"current tx is {{tx}}");
+        await this._db.{wrp_cls.entity_name_plural}.InsertAsync({wrp_cls.entity_name_us}, tx);
         this._model.{wrp_cls.entity_name_plural}.Add({wrp_cls.entity_name_us});
+        changes?.Add(this._model);
         return {wrp_cls.entity_name_us};
+    }}
+"""
+        s += f"""
+}}
+
+public partial class UserRepository
+{{
+    private async Task<UserModel> FindByIdAsync(int id)
+    {{
+        return await _db.Users.FindAsync<{models_s}>(x => x.Id == id, {models_x_s});
     }}
 """
         s += "}\n\n}"
@@ -213,18 +234,21 @@ using MicroOrm.Dapper.Repositories.Attributes.Joins;
 namespace {self.namespace}.Server.DB.Generated.Models
 {{
 
+[MessagePack.MessagePackObject(true)]
 [Table("user_models")]
 public class UserModel
 {{
     [Key]
     [Identity]
     public int Id {{ get; set; }}
+
     [Key]
-    public byte[] Address {{ get; set; }}  
+    public byte[] Address {{ get; set; }}
+
 """
         for wrp_cls in self._erc721_classes:
             s += f'    [LeftJoin("{wrp_cls.var_name_plural}", "Id", "UserId")]\n'
-            s += f"    public List<{wrp_cls.var_name_camel}> {wrp_cls.entity_name_plural} {{ get; set; }}\n"
+            s += f"    public List<{wrp_cls.var_name_camel}> {wrp_cls.entity_name_plural} {{ get; set; }}\n\n"
         s += "}\n\n}"
         out_path = Path(self._server_out_dir)\
             .joinpath("DB") \
@@ -234,8 +258,11 @@ public class UserModel
 
     def _emit_db_change_set(self):
         s = f"""//
+using System.Data;
 using System.Collections.Generic;
+using MagicOnion.Server;
 
+using {self.namespace}.Server.Cache;
 using {self.namespace}.Server.DB.Generated.Models;
 
 namespace {self.namespace}.Server.DB
@@ -243,16 +270,27 @@ namespace {self.namespace}.Server.DB
 
 public partial class DbChangeSet
 {{
+    private Dictionary<int, UserModel> _user_models; 
 """
         for wrp_cls in self._erc721_classes:
             s += f"    private Dictionary<int, {wrp_cls.var_name_camel}> _{wrp_cls.var_name_plural};\n"
         s += "\n"
+        s += """
+    public Dictionary<int, UserModel> Users => _user_models ??
+        (_user_models = new Dictionary<int, UserModel>());
+"""
         for wrp_cls in self._erc721_classes:
             s += f"""
     public Dictionary<int, {wrp_cls.var_name_camel}> {wrp_cls.entity_name_plural} => _{wrp_cls.var_name_plural} ??
         (_{wrp_cls.var_name_plural} = new Dictionary<int, {wrp_cls.var_name_camel}>());
 """
         s += "\n"
+        s += f"""
+    public void Add(UserModel user_model)
+    {{
+        Users[user_model.Id] = user_model;
+    }}
+"""
         #
         for wrp_cls in self._erc721_classes:
             s += f"""
@@ -262,19 +300,29 @@ public partial class DbChangeSet
     }}
 """
         s += f"""
-    public async Task<bool> FlushChanges(DbContext db)
+    public async Task FlushCache(UserCache cache)
     {{
+        foreach(var u in Users)
+        {{
+            Console.WriteLine($"flushing user, Id={{u.Value.Id}}");
+            await cache.SetAsync(u.Value);
+        }}
+    }}
+"""
+        s += f"""
+    public async Task FlushDbChanges(DbContext db)
+    {{
+        var tx = ServiceContext.Current.Items["tx"] as IDbTransaction;
 """
         for wrp_cls in self._erc721_classes:
 
             s += f"""
         if (_{wrp_cls.var_name_plural} is not null)
         {{
-            await db.{wrp_cls.entity_name_plural}.BulkUpdateAsync(_{wrp_cls.var_name_plural}.Values.ToList());
+            await db.{wrp_cls.entity_name_plural}.BulkUpdateAsync(_{wrp_cls.var_name_plural}.Values.ToList(), tx);
         }}
 """
         s += f"""
-        return true;
     }}
 """
         s += "}\n\n}"
@@ -299,19 +347,13 @@ namespace {self.namespace}.Server.DB.Generated.Models
 
 [MessagePack.MessagePackObject(true)]
 [Table("{wrp_cls.var_name_plural}")]
-public class {wrp_cls.var_name_camel} : IChangeTracking//, INotifyPropertyChanged
+public class {wrp_cls.var_name_camel}
 {{
-    //public event PropertyChangedEventHandler PropertyChanged;
-
     [Key]
     [Identity]
     public int Id {{ get; set; }}
 
     public int UserId {{ get; set; }}
-
-    [NotMapped]
-    public bool IsChanged {{ get; private set; }}    
-    public void AcceptChanges() => IsChanged = false;
 
 """
         for fname, fdef in wrp_cls._cls.__fields__.items():
@@ -321,18 +363,8 @@ public class {wrp_cls.var_name_camel} : IChangeTracking//, INotifyPropertyChange
             if t_origin == DataRef:
                 s += f"    public long {inflection.camelize(fname)} {{ get; set; }}\n"
             else:
-                s += f"""
-    private {self.get_cs_type(fdef.outer_type_)} _{inflection.camelize(fname)};
-    public {self.get_cs_type(fdef.outer_type_)} {inflection.camelize(fname)}
-    {{
-        get => _{inflection.camelize(fname)};
-        set
-        {{
-            _{inflection.camelize(fname)} = value;
-            IsChanged = true;
-        }}
-    }}
-"""
+                s += f"    public {self.get_cs_type(fdef.outer_type_)} {inflection.camelize(fname)} {{ get; set; }}\n"
+        #
         s += "}\n\n}"
         out_path = Path(self._server_out_dir)\
             .joinpath("DB") \
@@ -559,13 +591,14 @@ public class EventHub : IEventHubPub, IEventHubSub
 
     def _emit_model_iservice(self, wrp_cls):
         s = f"""//
+using MagicOnion;
 
-namespace {self.namespace}.Generated.Services
+namespace {self.namespace}.Shared.Services
 {{
 
 public partial interface IGameService
 {{
-    public void Retire{wrp_cls.entity_name}(long id);
+    public UnaryResult<int> Retire{wrp_cls.entity_name}(long id);
 """
         s += "}\n"
         # namespace end
@@ -581,25 +614,18 @@ public partial interface IGameService
 
     def _emit_model_service(self, wrp_cls):
         s = f"""//
-using MagicOnion.Server;
+using MagicOnion;
 
 using {self.namespace}.Shared.Services;
 
 namespace {self.namespace}.Server.Services
 {{
 
-public partial class GameService : IGameService
+public partial class GameService
 {{
-    public void Retire{wrp_cls.entity_name}(long id)
+    public async UnaryResult<int> Retire{wrp_cls.entity_name}(long id)
     {{
-    }}
-
-    private void Add{wrp_cls.entity_name}(ServiceContext ctx, long dataId)
-    {{
-    }}
-
-    private void Retire{wrp_cls.entity_name}(ServiceContext ctx, long dataId)
-    {{
+        return 0;
     }}
 """
         s += "}\n"
@@ -608,6 +634,68 @@ public partial class GameService : IGameService
         out_path = Path(self._server_out_dir) \
             .joinpath("Services") \
             .joinpath(f'{wrp_cls.entity_name}Service.cs')
+        self.write_file(out_path, s)
+
+    def _emit_model_cheat_services(self):
+        for wrp_cls in self._erc721_classes:
+            self._emit_model_cheat_service(wrp_cls)
+
+    def _emit_model_cheat_service(self, wrp_cls):
+        s = f"""//
+using MagicOnion;
+
+using {self.namespace}.Server.Repositories;
+using {self.namespace}.Server.DB.Generated.Models;
+
+namespace {self.namespace}.Server.Services
+{{
+
+public partial class CheatService
+{{
+    public async UnaryResult<int> Add{wrp_cls.entity_name}(int userId, int dataId)
+    {{
+        var {wrp_cls.var_name} = new {wrp_cls.var_name_camel}() 
+            {{
+                UserId = userId,
+                Data = dataId
+            }};
+        var user = await _userRepo.GetAsync(userId);
+        Console.WriteLine($"User cheat: {{user?.Id}}");
+        await user.AddAsync({wrp_cls.var_name});
+        return {wrp_cls.var_name}.Id;
+    }}
+"""
+        s += "}\n"
+        # namespace end
+        s += "\n}"
+        out_path = Path(self._server_out_dir) \
+            .joinpath("Services") \
+            .joinpath("Cheats") \
+            .joinpath(f'{wrp_cls.entity_name}CheatService.cs')
+        self.write_file(out_path, s)
+
+    def _emit_icheat_services(self):
+        for wrp_cls in self._erc721_classes:
+            self._emit_model_icheat_service(wrp_cls)
+
+    def _emit_model_icheat_service(self, wrp_cls):
+        s = f"""//
+using MagicOnion;
+
+namespace {self.namespace}.Shared.Services
+{{
+
+public partial interface ICheatService
+{{
+    public UnaryResult<int> Add{wrp_cls.entity_name}(int userId, int dataId);
+"""
+        s += "}\n"
+        # namespace end
+        s += "\n}"
+        out_path = Path(self._out_dir) \
+            .joinpath("Services") \
+            .joinpath("Cheats") \
+            .joinpath(f'I{wrp_cls.entity_name}CheatService.cs')
         self.write_file(out_path, s)
 
     def generate(self):
@@ -624,4 +712,8 @@ public partial class GameService : IGameService
         self._emit_event_hub()
         self._emit_iservices()
         self._emit_model_services()
+        #
+        self._emit_icheat_services()
+        self._emit_model_cheat_services()
+
 
