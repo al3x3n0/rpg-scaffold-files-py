@@ -17,8 +17,8 @@ class Upgradeable(DataModel):
 
 class UpgradeableWithExp(DataModel):
     _abstract = True
-    exp: int = 0
-    level: int = 0
+    exp: cs_ulong = 0
+    level: cs_int = 0
 
 
 class SkillModel(Upgradeable):
@@ -51,6 +51,8 @@ class BuildingModel(Upgradeable):
 
 
 class UserModel(_BaseModel):
+    _dto = True
+
     exp: int
     level: int
     buildings: typing.List[BuildingModel]

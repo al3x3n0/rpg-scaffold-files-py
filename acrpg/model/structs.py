@@ -12,10 +12,10 @@ class RewardHero(RewardBase):
 
 
 class RewardWeapon(RewardBase):
-    hero: DataRef[WeaponData]
+    weapon: DataRef[WeaponData]
     amount: int
 
 
 class RewardArtifact(RewardBase):
-    hero: DataRef[ArtifactData]
+    artifact: DataRef[ArtifactData]
     amount: int

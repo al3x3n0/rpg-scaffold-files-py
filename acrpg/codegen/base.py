@@ -84,6 +84,7 @@ class CodeGenBase(object):
         self._data_classes = []
         self._erc721_classes = []
         self._poly_structs = defaultdict(list)
+        self._poly_bases = dict()
 
     @property
     def namespace(self):
@@ -190,6 +191,7 @@ class CodeGenBase(object):
                 break
             if p_cls._struct and p_cls != cls:
                 self._poly_structs[p_cls].append(cls)
+                self._poly_bases[cls] = p_cls
 
     def write_file(self, p: pathlib.Path, s: str):
         os.makedirs(str(p.parents[0]), exist_ok=True)

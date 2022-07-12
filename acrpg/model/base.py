@@ -7,6 +7,7 @@ class _BaseModelMeta(type(BaseModel)):
         '_abstract',
         '_tokenized',
         '_nft',
+        '_dto',
         '_upgrade_material',
         '_upgrade_target',
         '_is_ladder',

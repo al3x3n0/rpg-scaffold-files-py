@@ -4,6 +4,7 @@ from pydantic import Field, validator, ValidationError
 from pydantic.fields import ModelField
 import typing
 
+from acrpg.model.types import *
 from acrpg.model.base import _BaseModel
 
 
@@ -137,7 +138,7 @@ class HeroClassData(BaseData):
 
 
 class HeroLevelLadderData(_BaseModel):
-    experience: int
+    experience: cs_ulong
 
 
 class HeroLadderData(BaseData):
@@ -166,7 +167,7 @@ class HeroData(BaseData):
 
 
 class WeaponLevelLadderData(_BaseModel):
-    experience: int
+    experience: cs_ulong
 
 
 class WeaponLadderData(BaseData):
@@ -182,7 +183,7 @@ class WeaponData(BaseData):
 
 
 class ArtifactLevelLadderData(_BaseModel):
-    experience: int
+    experience: cs_ulong
 
 
 class ArtifactLadderData(BaseData):
@@ -208,7 +209,7 @@ class HeroUpgradeMaterialData(BaseData):
 
     type: str = Field("hero_upgrade_material", const=True)
     name: str = Field(...)
-    value: int
+    value: cs_ulong
     description: str
 
 
@@ -218,7 +219,7 @@ class WeaponUpgradeMaterialData(BaseData):
 
     type: str = Field("weapon_upgrade_material", const=True)
     name: str = Field(...)
-    value: int
+    value: cs_ulong
     description: str
 
 
@@ -228,7 +229,7 @@ class ArtifactUpgradeMaterialData(BaseData):
 
     type: str = Field("artifact_upgrade_material", const=True)
     name: str = Field(...)
-    value: int
+    value: cs_ulong
     description: str
 
 
